@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 
 // MongoDB connection URI (replace <username>, <password>, and <dbname> with your MongoDB Atlas credentials)
 
-// const mongoURI = 'mongodb+srv://2022sanketdhuri:WKm6WEKmHe80Mgql@cluster0.91iy5uo.mongodb.net/iot';
+const mongoURI = 'mongodb+srv://2022sanketdhuri:WKm6WEKmHe80Mgql@cluster0.91iy5uo.mongodb.net/iot';
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
