@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const FormData = require('form-data');
 const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
+
 
 // Initialize Express app
 const app = express();
@@ -15,6 +17,7 @@ app.use(bodyParser.json());
 // MongoDB connection URI (replace <username>, <password>, and <dbname> with your MongoDB Atlas credentials)
 
 const mongoURI = 'mongodb+srv://2022sanketdhuri:WKm6WEKmHe80Mgql@cluster0.91iy5uo.mongodb.net/iot';
+const APIKey = process.env.API_KEY;
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -76,7 +79,7 @@ app.post('/api/chat', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
             }
         });
 
@@ -146,7 +149,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
             }
         });
 
@@ -161,7 +164,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
             },
             responseType: 'arraybuffer' // Request response as a buffer
         });
@@ -255,7 +258,7 @@ app.post('/api/jarvis', async (req, res) => {
             file: userInputAudio
         }, {
             headers: {
-                'Authorization': 'Bearer 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',
+                'Authorization': `Bearer ${APIKey}`,
                 'Content-Type': 'multipart/form-data'
             }
         });
@@ -277,7 +280,7 @@ app.post('/api/jarvis', async (req, res) => {
             ]
         }, {
             headers: {
-                'Authorization': 'Bearer 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',
+                'Authorization': `Bearer ${APIKey}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -291,7 +294,7 @@ app.post('/api/jarvis', async (req, res) => {
             voice: 'alloy'
         }, {
             headers: {
-                'Authorization': 'Bearer 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',
+                'Authorization': `Bearer ${APIKey}`,
                 'Content-Type': 'application/json'
             },
             responseType: 'arraybuffer'
