@@ -103,9 +103,7 @@ app.post('/api/chat', async (req, res) => {
 
 
 
-
-
-const { Schema, model } = require('mongoose');
+//-------------------------------------AUDIO-------------------------------------------------------------------
 // Create a Mongoose schema for audio data
 const audioSchema = new mongoose.Schema({
     userInput: {
@@ -149,7 +147,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
+                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
             }
         });
 
@@ -164,7 +162,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
+                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
             },
             responseType: 'arraybuffer' // Request response as a buffer
         });
@@ -175,27 +173,29 @@ app.post('/api/audio', async (req, res) => {
         // Upload the audio file to GitHub
         const audioContent = Buffer.from(textToSpeechResponse.data, 'binary');
         const downloadUrl = await uploadFileToGitHub(fileName, audioContent);
-        const audioUrl = `https://sanket-25.github.io/cdn/${fileName}`;
 
         // Save the download URL to MongoDB
         const newAudio = new Audio({
             userInput: content,
             openAIResponse: chatCompletionData,
-            audioUrl: audioUrl,
             audioDownloadUrl: downloadUrl
         });
         await newAudio.save();
-        
-        res.json({ audioUrl: audioUrl, audioDownloadUrl: downloadUrl });
+
+        // Return the audio download URL as response
+        const audioUrl = `https://sanket-25.github.io/cdn/${fileName}`;
+        res.json({ audioDownloadUrl: audioUrl });
     } catch (error) {
         console.error(error);
         return res.status(500).send('Error generating audio');
     }
 });
 
+const githubToken = process.env.GITHUB_TOKEN;
+
 // Function to upload file to GitHub
 async function uploadFileToGitHub(fileName, fileContent) {
-    const accessToken = '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';
+    const accessToken = githubToken;
     const repositoryOwner = 'sanket-25';
     const repositoryName = 'cdn';
     const apiUrl = `https://api.github.com/repos/${repositoryOwner}/${repositoryName}/contents/${fileName}`;
@@ -218,7 +218,6 @@ async function uploadFileToGitHub(fileName, fileContent) {
         throw error;
     }
 }
-
 
 
 //------------------------------------JARVIS----------------------------------------------------
@@ -347,3 +346,75 @@ async function uploadFileToGitHub(fileName, fileContent) {
         throw error;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//-------------------------------temp-------------------------------------------------------------------
+
+app.post('/api/data', async (req, res) => {
+    const { content } = req.body;
+
+    // Call the OpenAI API
+    try {
+        const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+            model: 'gpt-3.5-turbo',
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are a helpful assistant.'
+                },
+                {
+                    role: 'user',
+                    content: content
+                }
+            ]
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
+            }
+        });
+
+        // Extract the content from the OpenAI API response
+        const assistantResponse = response.data.choices[0].message.content;
+
+        // Save the user input and OpenAI response to MongoDB
+        const newData = new Data({
+            userInput: content,
+            openAIResponse: response.data
+        });
+        await newData.save();
+
+        // Return only the content in the API response
+        res.json({ content: assistantResponse });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send('Error calling OpenAI API');
+    }
+});
