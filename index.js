@@ -147,7 +147,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
             }
         });
 
@@ -162,7 +162,7 @@ app.post('/api/audio', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer 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' // Replace with your OpenAI API key
+                'Authorization': `Bearer ${APIKey}` // Replace with your OpenAI API key
             },
             responseType: 'arraybuffer' // Request response as a buffer
         });
@@ -323,7 +323,7 @@ app.post('/api/jarvis', async (req, res) => {
 // Function to upload file to GitHub
 async function uploadFileToGitHub(fileName, fileContent) {
     try {
-        const accessToken = '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';
+        const accessToken = githubToken;
         const repositoryOwner = 'sanket-25';
         const repositoryName = 'cdn';
         const apiUrl = `https://api.github.com/repos/${repositoryOwner}/${repositoryName}/contents/${fileName}`;
