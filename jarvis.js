@@ -1,3 +1,38 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const axios = require('axios');
+const FormData = require('form-data');
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
+
+const app = express();
+
+// Set up middleware
+app.use(bodyParser.json());
+
+// MongoDB connection URI (replace <username>, <password>, and <dbname> with your MongoDB Atlas credentials)
+
+const mongoURI = 'mongodb+srv://2022sanketdhuri:WKm6WEKmHe80Mgql@cluster0.91iy5uo.mongodb.net/iot';
+const APIKey = process.env.API_KEY;
+
+// Connect to MongoDB
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.log(err));
+
+
+// Define the port for the server to listen on
+const port = process.env.PORT || 3000;
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
+
+app.get('/', (req, res) => {
+    res.send('Hello, world!');
+});
 
 
 //------------------------------------JARVIS----------------------------------------------------
