@@ -35,7 +35,9 @@ app.get('/', (req, res) => {
     res.send('Hello, world!');
 });
 
-
+app.get('/hi', (req, res) => {
+    res.json({ "hi": "hello" });
+});
 
 // Create a Mongoose schema
 const dataSchema = new mongoose.Schema({
