@@ -11,16 +11,14 @@ const app = express();
 // Set up middleware
 app.use(bodyParser.json());
 
-// MongoDB connection URI (replace <username>, <password>, and <dbname> with your MongoDB Atlas credentials)
-
-const mongoURI = 'mongodb+srv://2022sanketdhuri:WKm6WEKmHe80Mgql@cluster0.91iy5uo.mongodb.net/iot';
+// MongoDB connection URI
+const mongoURI = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.91iy5uo.mongodb.net/${process.env.DB_NAME}`;
 const APIKey = process.env.API_KEY;
 
 // Connect to MongoDB
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log(err));
-
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // Define the port for the server to listen on
 const port = process.env.PORT || 3000;
@@ -30,32 +28,20 @@ app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
+// Basic route
 app.get('/', (req, res) => {
     res.send('Hello, world!');
 });
-
 
 //------------------------------------JARVIS----------------------------------------------------
 
 // Define the Jarvis schema
 const jarvisSchema = new mongoose.Schema({
-    userInputAudio: {
-        type: String,
-        required: true
-    },
-    openAIResponse: {
-        type: Object
-    },
-    outputText: {
-        type: String
-    },
-    audioLink: {
-        type: String
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+    userInputAudio: { type: String, required: true },
+    openAIResponse: { type: Object },
+    outputText: { type: String },
+    audioLink: { type: String },
+    createdAt: { type: Date, default: Date.now }
 });
 
 // Create a Mongoose model for Jarvis data
@@ -66,63 +52,13 @@ app.post('/api/jarvis', async (req, res) => {
     try {
         const { userInputAudio } = req.body;
 
-        // Call the OpenAI API for audio transcriptions
-        const audioTranscriptionResponse = await axios.post('https://api.openai.com/v1/audio/transcriptions', {
-            model: 'whisper-1',
-            file: userInputAudio
-        }, {
-            headers: {
-                'Authorization': `Bearer ${APIKey}`,
-                'Content-Type': 'multipart/form-data'
-            }
-        });
+        const audioText = await transcribeAudio(userInputAudio);
+        const assistantResponse = await getChatCompletion(audioText);
+        const audioLink = await convertTextToSpeech(assistantResponse);
 
-        const audioText = audioTranscriptionResponse.data.text;
-
-        // Call the OpenAI API for chat completions
-        const chatCompletionResponse = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: 'gpt-3.5-turbo',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a helpful assistant.'
-                },
-                {
-                    role: 'user',
-                    content: audioText
-                }
-            ]
-        }, {
-            headers: {
-                'Authorization': `Bearer ${APIKey}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const assistantResponse = chatCompletionResponse.data.choices[0].message.content;
-
-        // Call the OpenAI API for text-to-speech
-        const textToSpeechResponse = await axios.post('https://api.openai.com/v1/audio/speech', {
-            model: 'tts-1',
-            input: assistantResponse,
-            voice: 'alloy'
-        }, {
-            headers: {
-                'Authorization': `Bearer ${APIKey}`,
-                'Content-Type': 'application/json'
-            },
-            responseType: 'arraybuffer'
-        });
-
-        // Upload the audio file to GitHub
-        const fileName = `audio_${Date.now()}.mp3`;
-        const audioContent = Buffer.from(textToSpeechResponse.data, 'binary');
-        const audioLink = await uploadFileToGitHub(fileName, audioContent);
-
-        // Save the Jarvis data to MongoDB
         const newJarvisData = new Jarvis({
             userInputAudio,
-            openAIResponse: chatCompletionResponse.data,
+            openAIResponse: assistantResponse,
             outputText: assistantResponse,
             audioLink
         });
@@ -135,29 +71,74 @@ app.post('/api/jarvis', async (req, res) => {
     }
 });
 
+// Function to transcribe audio
+async function transcribeAudio(userInputAudio) {
+    const response = await axios.post('https://api.openai.com/v1/audio/transcriptions', {
+        model: 'whisper-1',
+        file: userInputAudio
+    }, {
+        headers: {
+            'Authorization': `Bearer ${APIKey}`,
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data.text;
+}
+
+// Function to get chat completion
+async function getChatCompletion(audioText) {
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+        model: 'gpt-3.5-turbo',
+        messages: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: audioText }
+        ]
+    }, {
+        headers: {
+            'Authorization': `Bearer ${APIKey}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    return response.data.choices[0].message.content;
+}
+
+// Function to convert text to speech and upload to GitHub
+async function convertTextToSpeech(assistantResponse) {
+    const textToSpeechResponse = await axios.post('https://api.openai.com/v1/audio/speech', {
+        model: 'tts-1',
+        input: assistantResponse,
+        voice: 'alloy'
+    }, {
+        headers: {
+            'Authorization': `Bearer ${APIKey}`,
+            'Content-Type': 'application/json'
+        },
+        responseType: 'arraybuffer'
+    });
+
+    const fileName = `audio_${Date.now()}.mp3`;
+    const audioContent = Buffer.from(textToSpeechResponse.data, 'binary');
+    return await uploadFileToGitHub(fileName, audioContent);
+}
+
 // Function to upload file to GitHub
 async function uploadFileToGitHub(fileName, fileContent) {
-    try {
-        const accessToken = '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';
-        const repositoryOwner = 'sanket-25';
-        const repositoryName = 'cdn';
-        const apiUrl = `https://api.github.com/repos/${repositoryOwner}/${repositoryName}/contents/${fileName}`;
+    const accessToken = process.env.GITHUB_ACCESS_TOKEN; // Use environment variable
+    const repositoryOwner = 'sanket-25';
+    const repositoryName = 'cdn';
+    const apiUrl = `https://api.github.com/repos/${repositoryOwner}/${repositoryName}/contents/${fileName}`;
 
-        const form = new FormData();
-        form.append('message', 'Add file via API');
-        form.append('content', fileContent, { filename: fileName });
-        form.append('branch', 'main');
+    const form = new FormData();
+    form.append('message', 'Add file via API');
+    form.append('content', fileContent.toString('base64')); // Convert to base64
+    form.append('branch', 'main');
 
-        const response = await axios.put(apiUrl, form, {
-            headers: {
-                'Authorization': `token ${accessToken}`,
-                ...form.getHeaders()
-            }
-        });
+    const response = await axios.put(apiUrl, form, {
+        headers: {
+            'Authorization': `token ${accessToken}`,
+            ...form.getHeaders()
+        }
+    });
 
-        return response.data.content.download_url;
-    } catch (error) {
-        console.error('Error uploading file to GitHub:', error);
-        throw error;
-    }
+    return response.data.content.download_url;
 }
